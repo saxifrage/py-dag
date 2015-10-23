@@ -1,7 +1,22 @@
+import sys
+
 from copy import copy, deepcopy
 
 class DAGValidationError(Exception):
     pass
+
+
+if sys.version_info[0] == 2:
+    items = lambda d: d.iteritems
+    values = lambda d: d.itervalues
+    keys = lambda d: d.iterkeys
+elif sys.version_info[0] == 3:
+    items = lambda d: d.items
+    values = lambda d: d.values
+    keys = lambda d: d.keys
+else:
+    raise Exception("Unknown Python version: {}.".format(sys.version_info[0]))
+
 
 class DAG(object):
     """ Directed acyclic graph implementation. """
@@ -28,7 +43,7 @@ class DAG(object):
             raise KeyError('node %s does not exist' % node_name)
         graph.pop(node_name)
 
-        for node, edges in graph.iteritems():
+        for node, edges in items(graph)():
             if node_name in edges:
                 edges.remove(node_name)
 
@@ -61,7 +76,7 @@ class DAG(object):
         """ Change references to a task in existing edges. """
         if not graph:
             graph = self.graph
-        for node, edges in graph.iteritems():
+        for node, edges in items(graph)():
 
             if node == old_task_name:
                 graph[new_task_name] = copy(edges)
@@ -119,9 +134,9 @@ class DAG(object):
         """
 
         self.reset_graph()
-        for new_node in graph_dict.iterkeys():
+        for new_node in keys(graph_dict)():
             self.add_node(new_node)
-        for ind_node, dep_nodes in graph_dict.iteritems():
+        for ind_node, dep_nodes in items(graph_dict)():
             if not isinstance(dep_nodes, list):
                 raise TypeError('dict values must be lists')
             for dep_node in dep_nodes:
@@ -138,7 +153,7 @@ class DAG(object):
         if graph is None:
             raise Exception("Graph given is None")
         all_nodes, dependent_nodes = set(graph.keys()), set()
-        for downstream_nodes in graph.itervalues():
+        for downstream_nodes in values(graph)():
             [dependent_nodes.add(node) for node in downstream_nodes]
         return list(all_nodes - dependent_nodes)
 
@@ -160,7 +175,7 @@ class DAG(object):
         if graph is None:
             raise Exception("Graph given is None")
         result = set()
-        for node, outgoing_nodes in graph.iteritems():
+        for node, outgoing_nodes in items(graph)():
             if target_node in outgoing_nodes:
                 result.add(node)
         return list(result)
